@@ -12,14 +12,14 @@ namespace ConvNetSharp.Flow.Ops
     /// <typeparam name="T"></typeparam>
     public class Div<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Div(Dictionary<string, object> data)
+        public Div(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Div(Op<T> left, Op<T> right)
+        public Div(ConvNetSharp<T> graph, Op<T> left, Op<T> right) : base(graph)
         {
-            AddParent(left);
-            AddParent(right);
+            this.AddParent(left);
+            this.AddParent(right);
         }
 
         public override string Representation => "/";
@@ -44,8 +44,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var left = this.Parents[0].Evaluate(session);
@@ -57,9 +58,9 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(left.Shape);
             }
 
-            left.DoDivide(right, this.Result);
+            left.Divide(right, this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
 
         public override string ToString()

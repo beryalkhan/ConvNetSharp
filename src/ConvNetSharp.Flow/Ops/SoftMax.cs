@@ -8,12 +8,12 @@ namespace ConvNetSharp.Flow.Ops
     {
         private long _lastGradientComputeStep = -1;
 
-        public Softmax(Op<T> x)
+        public Softmax(ConvNetSharp<T> graph, Op<T> x) : base(graph)
         {
-            AddParent(x);
+            this.AddParent(x);
         }
 
-        public Softmax(Dictionary<string, object> data)
+        public Softmax(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
@@ -23,15 +23,16 @@ namespace ConvNetSharp.Flow.Ops
 
         public override void Differentiate()
         {
-            this.Parents[0].RegisterDerivate(new SoftmaxGradient<T>(this));
+            this.Parents[0].RegisterDerivate(new SoftmaxGradient<T>(this.Graph, this));
         }
 
         public override Volume<T> Evaluate(Session<T> session)
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var x = this.Parents[0].Evaluate(session);
@@ -42,9 +43,9 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(x.Shape);
             }
 
-            x.DoSoftmax(this.Result);
+            x.Softmax(this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
 
         public void EvaluateGradient(Session<T> session)
@@ -53,6 +54,7 @@ namespace ConvNetSharp.Flow.Ops
             {
                 return;
             }
+
             this._lastGradientComputeStep = session.Step;
 
             var x = this.Parents[0].Evaluate(session);
@@ -64,7 +66,7 @@ namespace ConvNetSharp.Flow.Ops
 
             if (this.Derivate != null)
             {
-                x.DoSoftmaxGradient(this.Derivate.Evaluate(session), this.InputGradient);
+                x.SoftmaxGradient(this.Derivate.Evaluate(session), this.InputGradient);
             }
         }
 

@@ -11,9 +11,9 @@ namespace ConvNetSharp.Volume
         {
             this._storage = new T[shape.TotalLength];
 
-            this._dim0 = this.Shape.GetDimension(0);
-            var dim1 = this.Shape.GetDimension(1);
-            var dim2 = this.Shape.GetDimension(2);
+            this._dim0 = this.Shape.Dimensions[0];
+            var dim1 = this.Shape.Dimensions[1];
+            var dim2 = this.Shape.Dimensions[2];
             this._dim0Dm1 = this._dim0 * dim1;
             this._dim0Dm1Dm2 = this._dim0 * dim1 * dim2;
 
@@ -25,11 +25,11 @@ namespace ConvNetSharp.Volume
         public NcwhVolumeStorage(T[] array, Shape shape) : base(shape)
         {
             this._storage = (T[])array.Clone();
-            this.Shape.GuessUnkownDimension(this._storage.Length);
+            this.Shape.GuessUnknownDimension(this._storage.Length);
 
-            this._dim0 = this.Shape.GetDimension(0);
-            var dim1 = this.Shape.GetDimension(1);
-            var dim2 = this.Shape.GetDimension(2);
+            this._dim0 = this.Shape.Dimensions[0];
+            var dim1 = this.Shape.Dimensions[1];
+            var dim2 = this.Shape.Dimensions[2];
             this._dim0Dm1 = this._dim0 * dim1;
             this._dim0Dm1Dm2 = this._dim0 * dim1 * dim2;
         }
@@ -37,21 +37,29 @@ namespace ConvNetSharp.Volume
         // Used by dropout layer
         public bool[] Dropped { get; set; }
 
-        public NcwhVolumeStorage<T> ReShape(Shape shape)
-        {
-            var storage = new NcwhVolumeStorage<T>(shape);
-            storage._storage = this._storage;
-            return storage;
-        }
-
         public override void Clear()
         {
             Array.Clear(this._storage, 0, this._storage.Length);
         }
 
+        public override void CopyFrom(VolumeStorage<T> source)
+        {
+            var src = source as NcwhVolumeStorage<T>;
+
+            if (!ReferenceEquals(this, src))
+            {
+                if (this.Shape.TotalLength != src.Shape.TotalLength)
+                {
+                    throw new ArgumentException($"origin and destination volume should have the same number of weight ({this.Shape.TotalLength} != {src.Shape}).");
+                }
+
+                Array.Copy(src._storage, this._storage, this._storage.Length);
+            }
+        }
+
         public override T Get(int[] coordinates)
         {
-            int length = coordinates.Length;
+            var length = coordinates.Length;
             return this.Get(coordinates[0], length > 1 ? coordinates[1] : 0, length > 2 ? coordinates[2] : 0, length > 3 ? coordinates[3] : 0);
         }
 
@@ -76,9 +84,15 @@ namespace ConvNetSharp.Volume
             return this._storage[i];
         }
 
+        public NcwhVolumeStorage<T> ReShape(Shape shape)
+        {
+            var storage = new NcwhVolumeStorage<T>(shape) { _storage = this._storage };
+            return storage;
+        }
+
         public override void Set(int[] coordinates, T value)
         {
-            int length = coordinates.Length;
+            var length = coordinates.Length;
             this.Set(coordinates[0], length > 1 ? coordinates[1] : 0, length > 2 ? coordinates[2] : 0, length > 3 ? coordinates[3] : 0, value);
         }
 
@@ -105,13 +119,6 @@ namespace ConvNetSharp.Volume
         public override T[] ToArray()
         {
             return (T[])this._storage.Clone();
-        }
-
-        public override void CopyFrom(VolumeStorage<T> source)
-        {
-            var real = source as NcwhVolumeStorage<T>;
-
-            Array.Copy(real._storage, this._storage, this._storage.Length);
         }
     }
 }

@@ -1,19 +1,20 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using ConvNetSharp.Core.Fluent;
 using ConvNetSharp.Core.Layers;
 using ConvNetSharp.Core.Layers.Double;
 using ConvNetSharp.Core.Serialization;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace ConvNetSharp.Core.Tests
 {
     /// <summary>
-    /// TODO: make it generic
+    ///     TODO: make it generic
     /// </summary>
-    [TestClass]
+    [TestFixture]
     public class SerializationTests
     {
-        [TestMethod]
+        [Test]
         public void ConvLayerSerialization()
         {
             var layer = new ConvLayer(5, 5, 8) { Stride = 1, Pad = 2, BiasPref = 0.5 };
@@ -47,7 +48,54 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.BiasPref, deserialized.BiasPref);
         }
 
-        [TestMethod]
+        [Test]
+        public void DropoutSerialization()
+        {
+            var layer = new DropoutLayer(0.1);
+            layer.Init(28, 24, 1);
+            var data = layer.GetData();
+
+            Assert.AreEqual(28, data["InputWidth"]);
+            Assert.AreEqual(24, data["InputHeight"]);
+            Assert.AreEqual(1, data["InputDepth"]);
+
+            var deserialized = LayerBase<double>.FromData(data) as DropoutLayer;
+
+            Assert.IsNotNull(deserialized);
+            Assert.AreEqual(28, deserialized.InputWidth);
+            Assert.AreEqual(24, deserialized.InputHeight);
+            Assert.AreEqual(1, deserialized.InputDepth);
+            Assert.AreEqual(layer.OutputWidth, deserialized.OutputWidth);
+            Assert.AreEqual(layer.OutputHeight, deserialized.OutputHeight);
+            Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
+
+            Assert.AreEqual(layer.DropProbability, deserialized.DropProbability);
+        }
+
+        [Test]
+        public void FluentNetSerialization()
+        {
+            // Fluent version
+            var net = FluentNet<double>.Create(24, 24, 1)
+                .Conv(5, 5, 8).Stride(1).Pad(2)
+                .Relu()
+                .Pool(2, 2).Stride(2)
+                .Conv(5, 5, 16).Stride(1).Pad(2)
+                .Relu()
+                .Pool(3, 3).Stride(3)
+                .FullyConn(10)
+                .Softmax(10)
+                .Build();
+
+            var json = net.ToJson();
+            var deserialized = SerializationExtensions.FromJson<double>(json);
+
+            Assert.AreEqual(9, deserialized.Layers.Count);
+            Assert.IsTrue(deserialized.Layers[0] is InputLayer<double>);
+            Assert.IsTrue(deserialized.Layers[8] is SoftmaxLayer<double>);
+        }
+
+        [Test]
         public void FullyConnLayerSerialization()
         {
             var layer = new FullyConnLayer(10) { BiasPref = 0.5 };
@@ -77,7 +125,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.BiasPref, deserialized.BiasPref);
         }
 
-        [TestMethod]
+        [Test]
         public void InputLayerSerialization()
         {
             var layer = new InputLayer(28, 24, 1);
@@ -98,7 +146,30 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
         }
 
-        [TestMethod]
+        [Test]
+        public void LeakyReluLayerSerialization()
+        {
+            var layer = new LeakyReluLayer(0.01);
+            layer.Init(28, 24, 1);
+            var data = layer.GetData();
+
+            Assert.AreEqual(28, data["InputWidth"]);
+            Assert.AreEqual(24, data["InputHeight"]);
+            Assert.AreEqual(1, data["InputDepth"]);
+
+            var deserialized = LayerBase<double>.FromData(data) as LeakyReluLayer;
+
+            Assert.IsNotNull(deserialized);
+            Assert.AreEqual(28, deserialized.InputWidth);
+            Assert.AreEqual(24, deserialized.InputHeight);
+            Assert.AreEqual(1, deserialized.InputDepth);
+            Assert.AreEqual(layer.OutputWidth, deserialized.OutputWidth);
+            Assert.AreEqual(layer.OutputHeight, deserialized.OutputHeight);
+            Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
+            Assert.AreEqual(0.01, layer.Alpha);
+        }
+
+        [Test]
         public void NetSerialization()
         {
             var net = new Net<double>();
@@ -113,9 +184,11 @@ namespace ConvNetSharp.Core.Tests
 
             var json = net.ToJson();
             var deserialized = SerializationExtensions.FromJson<double>(json);
+
+            Assert.AreEqual(8, deserialized.Layers.Count);
         }
 
-        [TestMethod]
+        [Test]
         public void NetSerializationData()
         {
             var net = new Net<double>();
@@ -139,7 +212,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(net.Layers.Count, deserialized.Layers.Count);
         }
 
-        [TestMethod]
+        [Test]
         public void PoolLayerSerialization()
         {
             var layer = new PoolLayer(3, 3) { Pad = 1, Stride = 2 };
@@ -166,7 +239,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.Stride, deserialized.Stride);
         }
 
-        [TestMethod]
+        [Test]
         public void RegressionLayerSerialization()
         {
             var layer = new RegressionLayer();
@@ -189,7 +262,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
         }
 
-        [TestMethod]
+        [Test]
         public void ReluLayerSerialization()
         {
             var layer = new ReluLayer();
@@ -211,29 +284,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
         }
 
-        [TestMethod]
-        public void LeakyReluLayerSerialization()
-        {
-            var layer = new LeakyReluLayer();
-            layer.Init(28, 24, 1);
-            var data = layer.GetData();
-
-            Assert.AreEqual(28, data["InputWidth"]);
-            Assert.AreEqual(24, data["InputHeight"]);
-            Assert.AreEqual(1, data["InputDepth"]);
-
-            var deserialized = LayerBase<double>.FromData(data) as LeakyReluLayer;
-
-            Assert.IsNotNull(deserialized);
-            Assert.AreEqual(28, deserialized.InputWidth);
-            Assert.AreEqual(24, deserialized.InputHeight);
-            Assert.AreEqual(1, deserialized.InputDepth);
-            Assert.AreEqual(layer.OutputWidth, deserialized.OutputWidth);
-            Assert.AreEqual(layer.OutputHeight, deserialized.OutputHeight);
-            Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
-        }
-
-        [TestMethod]
+        [Test]
         public void SigmoidLayerSerialization()
         {
             var layer = new SigmoidLayer();
@@ -255,7 +306,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
         }
 
-        [TestMethod]
+        [Test]
         public void SoftmaxLayerSerialization()
         {
             var layer = new SoftmaxLayer(10);
@@ -279,7 +330,7 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.ClassCount, deserialized.ClassCount);
         }
 
-        [TestMethod]
+        [Test]
         public void TanhLayerSerialization()
         {
             var layer = new TanhLayer();
@@ -299,30 +350,6 @@ namespace ConvNetSharp.Core.Tests
             Assert.AreEqual(layer.OutputWidth, deserialized.OutputWidth);
             Assert.AreEqual(layer.OutputHeight, deserialized.OutputHeight);
             Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
-        }
-
-        [TestMethod]
-        public void DropoutSerialization()
-        {
-            var layer = new DropoutLayer { DropProbability = 0.1 };
-            layer.Init(28, 24, 1);
-            var data = layer.GetData();
-
-            Assert.AreEqual(28, data["InputWidth"]);
-            Assert.AreEqual(24, data["InputHeight"]);
-            Assert.AreEqual(1, data["InputDepth"]);
-
-            var deserialized = LayerBase<double>.FromData(data) as DropoutLayer;
-
-            Assert.IsNotNull(deserialized);
-            Assert.AreEqual(28, deserialized.InputWidth);
-            Assert.AreEqual(24, deserialized.InputHeight);
-            Assert.AreEqual(1, deserialized.InputDepth);
-            Assert.AreEqual(layer.OutputWidth, deserialized.OutputWidth);
-            Assert.AreEqual(layer.OutputHeight, deserialized.OutputHeight);
-            Assert.AreEqual(layer.OutputDepth, deserialized.OutputDepth);
-
-            Assert.AreEqual(layer.DropProbability, deserialized.DropProbability);
         }
     }
 }

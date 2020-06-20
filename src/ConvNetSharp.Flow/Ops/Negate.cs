@@ -11,21 +11,21 @@ namespace ConvNetSharp.Flow.Ops
     /// <typeparam name="T"></typeparam>
     public class Negate<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Negate(Dictionary<string, object> data)
+        public Negate(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Negate(Op<T> x)
+        public Negate(ConvNetSharp<T> graph, Op<T> x) : base(graph)
         {
-            AddParent(x);
+            this.AddParent(x);
         }
+
+        public override string Representation => "Neg";
 
         public override void Differentiate()
         {
             this.Parents[0].RegisterDerivate(-this.Derivate);
         }
-
-        public override string Representation => "Neg";
 
         protected override void Dispose(bool disposing)
         {
@@ -41,8 +41,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var y = this.Parents[0].Evaluate(session);
@@ -53,9 +54,9 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(y.Shape);
             }
 
-            y.DoNegate(this.Result);
+            y.Negate(this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
 
         public override string ToString()

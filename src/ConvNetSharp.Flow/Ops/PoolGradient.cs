@@ -7,7 +7,7 @@ namespace ConvNetSharp.Flow.Ops
     {
         private readonly Pool<T> _pool;
 
-        public PoolGradient(Pool<T> pool, Op<T> derivate)
+        public PoolGradient(ConvNetSharp<T> graph, Pool<T> pool, Op<T> derivate) : base(graph)
         {
             this._pool = pool;
 
@@ -28,6 +28,7 @@ namespace ConvNetSharp.Flow.Ops
             {
                 return this._pool.InputGradient;
             }
+
             this.IsDirty = false;
 
             this._pool.EvaluateGradient(session);

@@ -26,7 +26,7 @@ namespace ConvNetSharp.Flow.Training
 
         public override void Train(Volume<T> x, Volume<T> y)
         {
-            var batchSize = x.Shape.GetDimension(3);
+            var batchSize = x.Shape.Dimensions[3];
 
             this._dico["Y"] = y;
             this._dico["input"] = x;
@@ -37,7 +37,7 @@ namespace ConvNetSharp.Flow.Training
 
             chrono = Stopwatch.StartNew();
             this._net.Session.Run(this.Optimizer, this._dico);
-            this.BackwardTimeMs= chrono.Elapsed.TotalMilliseconds / batchSize;
+            this.BackwardTimeMs = chrono.Elapsed.TotalMilliseconds / batchSize;
         }
     }
 }

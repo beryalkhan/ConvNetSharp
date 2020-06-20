@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -9,31 +8,114 @@ namespace ConvNetSharp.Volume
     [DebuggerDisplay("Shape {PrettyPrint()}")]
     public class Shape : IEquatable<Shape>
     {
-        public static int None = -1;
+        public static int None = -1; // Automatically guesses
 
-        public static int Keep = -2;
+        public static int Keep = -2; // Keep same dimension
 
-        public Shape()
+        /// <summary>
+        ///     Create shape of [1,1,c,1]
+        /// </summary>
+        /// <param name="c"></param>
+        public Shape(int c)
         {
+            if (c == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(c));
+            }
+
+            this.Dimensions = new[] {1, 1, c, 1};
+            this.UpdateTotalLength();
         }
 
-        public Shape(params int[] dimensions) : this((IEnumerable<int>)dimensions)
+        /// <summary>
+        ///     Create shape of [dimensionW,dimensionH,1,1]
+        /// </summary>
+        /// <param name="w"></param>
+        /// <param name="h"></param>
+        public Shape(int w, int h)
         {
+            if (w == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(w));
+            }
+
+            if (h == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(h));
+            }
+
+            this.Dimensions = new[] {w, h, 1, 1};
+            this.UpdateTotalLength();
         }
 
-        public Shape(IEnumerable<int> dimensions)
+        /// <summary>
+        ///     Create shape of [dimensionW,dimensionH,dimensionC,1]
+        /// </summary>
+        /// <param name="w"></param>
+        /// <param name="h"></param>
+        /// <param name="c"></param>
+        public Shape(int w, int h, int c)
         {
-            this.Dimensions.AddRange(dimensions);
-            UpdateTotalLength();
+            if (w == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(w));
+            }
+
+            if (h == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(h));
+            }
+
+            if (c == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(c));
+            }
+
+            this.Dimensions = new[] {w, h, c, 1};
+            this.UpdateTotalLength();
         }
 
-        public Shape(Shape shape) : this(shape.Dimensions.ToArray())
+        /// <summary>
+        /// </summary>
+        /// <param name="w"></param>
+        /// <param name="h"></param>
+        /// <param name="c"></param>
+        /// <param name="batchSize"></param>
+        public Shape(int w, int h, int c, int batchSize)
         {
+            if (w == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(w));
+            }
+
+            if (h == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(h));
+            }
+
+            if (c == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(c));
+            }
+
+            if (batchSize == 0)
+            {
+                throw new ArgumentException("Dimension cannot be 0", nameof(batchSize));
+            }
+
+            this.Dimensions = new[] {w, h, c, batchSize};
+            this.UpdateTotalLength();
         }
 
-        public List<int> Dimensions { get; } = new List<int>();
+        public Shape(Shape shape)
+        {
+            this.Dimensions = (int[]) shape.Dimensions.Clone();
+            this.UpdateTotalLength();
+        }
 
-        public int DimensionCount => this.Dimensions.Count;
+        public bool IsScalar { get; private set; }
+
+        public int[] Dimensions { get; }
 
         public long TotalLength { get; private set; }
 
@@ -43,6 +125,7 @@ namespace ConvNetSharp.Volume
             {
                 return false;
             }
+
             if (ReferenceEquals(this, other))
             {
                 return true;
@@ -53,11 +136,9 @@ namespace ConvNetSharp.Volume
                 return false;
             }
 
-            for (var i = 0; i < this.DimensionCount; i++)
+            for (var i = 0; i < 4; i++)
             {
-                var k = other.DimensionCount > i ? other.Dimensions[i] : 1; ;
-
-                if (this.Dimensions[i] != k)
+                if (this.Dimensions[i] != other.Dimensions[i])
                 {
                     return false;
                 }
@@ -66,54 +147,47 @@ namespace ConvNetSharp.Volume
             return true;
         }
 
+        private string DimensionToString(int d)
+        {
+            return d == -1 ? "None" : d == -2 ? "Keep" : d.ToString();
+        }
+
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
             {
                 return false;
             }
+
             if (ReferenceEquals(this, obj))
             {
                 return true;
             }
-            if (obj.GetType() != GetType())
+
+            if (obj.GetType() != this.GetType())
             {
                 return false;
             }
-            return Equals((Shape)obj);
+
+            return this.Equals((Shape) obj);
         }
 
         public static Shape From(params int[] dimensions)
         {
-            return new Shape(dimensions);
+            switch (dimensions.Length)
+            {
+                case 1: return new Shape(dimensions[0]);
+                case 2: return new Shape(dimensions[0], dimensions[1]);
+                case 3: return new Shape(dimensions[0], dimensions[1], dimensions[2]);
+                case 4: return new Shape(dimensions[0], dimensions[1], dimensions[2], dimensions[3]);
+            }
+
+            throw new ArgumentException($"Invalid number of dimensions {dimensions.Length}. It should be > 0 and <= 4");
         }
 
-        public static Shape From(Shape original, params int[] dimensions)
+        public static Shape From(Shape original)
         {
-            dimensions = original.Dimensions
-                .Concat(dimensions)
-                .ToArray();
-            return new Shape(dimensions);
-        }
-
-        public int GetDimension(int index)
-        {
-            if (this.Dimensions.Count <= index)
-            {
-                return 1;
-            }
-
-            if (index < 0)
-            {
-                index += this.DimensionCount;
-            }
-
-            if (index < 0)
-            {
-                index = 0;
-            }
-
-            return this.Dimensions[index];
+            return new Shape(original);
         }
 
         public override int GetHashCode()
@@ -124,18 +198,17 @@ namespace ConvNetSharp.Volume
             }
         }
 
-        public void GuessUnkownDimension(long totalLength)
+        public void GuessUnknownDimension(long totalLength)
         {
             long product = 1;
             var unknownIndex = -1;
-            var numDims = this.DimensionCount;
 
             if (totalLength <= 0)
             {
                 throw new ArgumentException($"{nameof(totalLength)} must be non-negative, not {totalLength}");
             }
 
-            for (var d = 0; d < numDims; ++d)
+            for (var d = 0; d < 4; ++d)
             {
                 var size = this.Dimensions[d];
                 if (size == -1)
@@ -171,40 +244,31 @@ namespace ConvNetSharp.Volume
 
                 if (missing * product != totalLength)
                 {
-                    throw new ArgumentException($"Input to reshape is a tensor with {totalLength} values, " +
-                                                $"but the requested shape requires a multiple of {product}");
+                    throw new ArgumentException($"Input to reshape is a tensor with totalLength={totalLength}, " +
+                                                $"but the requested shape requires totalLength to be a multiple of {product}");
                 }
 
-                SetDimension(unknownIndex, (int)missing);
+                this.SetDimension(unknownIndex, (int) missing);
             }
             else
             {
                 if (product != totalLength)
                 {
-                    throw new ArgumentException("Imcompatible dimensions provided");
+                    throw new ArgumentException("incompatible dimensions provided");
                 }
             }
-        }
-
-        public static implicit operator Shape(int[] dimensions)
-        {
-            return new Shape(dimensions);
-        }
-
-        private string DimensionToString(int d)
-        {
-            return d == -1 ? "None" : (d == -2 ? "Keep" : d.ToString());
         }
 
         public string PrettyPrint(string sep = "x")
         {
             var sb = new StringBuilder();
-            for (var i = 0; i < this.Dimensions.Count - 1; i++)
+            for (var i = 0; i < 3; i++)
             {
-                sb.Append(DimensionToString(this.Dimensions[i]));
+                sb.Append(this.DimensionToString(this.Dimensions[i]));
                 sb.Append(sep);
             }
-            sb.Append(DimensionToString(this.Dimensions[this.Dimensions.Count - 1]));
+
+            sb.Append(this.DimensionToString(this.Dimensions[3]));
             return sb.ToString();
         }
 
@@ -212,26 +276,22 @@ namespace ConvNetSharp.Volume
         {
             if (index < 0)
             {
-                index += this.DimensionCount;
-            }
-
-            if (index < 0)
-            {
-                index = 0;
+                throw new ArgumentException("index cannot be negative", nameof(index));
             }
 
             this.Dimensions[index] = dimension;
-            UpdateTotalLength();
+            this.UpdateTotalLength();
         }
 
         public override string ToString()
         {
-            return PrettyPrint();
+            return this.PrettyPrint();
         }
 
         private void UpdateTotalLength()
         {
-            this.TotalLength = this.Dimensions.Aggregate((long)1, (acc, val) => acc * val);
+            this.TotalLength = this.Dimensions.Aggregate((long) 1, (acc, val) => acc * val);
+            this.IsScalar = this.Dimensions[0] == this.Dimensions[1] == (this.Dimensions[2] == 1);
         }
     }
 }

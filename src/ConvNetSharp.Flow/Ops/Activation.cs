@@ -10,17 +10,16 @@ namespace ConvNetSharp.Flow.Ops
     /// <typeparam name="T"></typeparam>
     public class Activation<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Activation(Dictionary<string, object> data)
+        public Activation(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
-            ActivationType result;
-            Enum.TryParse((string) data["ActivationType"], out result);
+            Enum.TryParse((string)data["ActivationType"], out ActivationType result);
 
             this.Type = result;
         }
 
-        public Activation(Op<T> x, ActivationType type)
+        public Activation(ConvNetSharp<T> graph, Op<T> x, ActivationType type) : base(graph)
         {
-            AddParent(x);
+            this.AddParent(x);
             this.Type = type;
         }
 
@@ -30,7 +29,7 @@ namespace ConvNetSharp.Flow.Ops
 
         public override void Differentiate()
         {
-            this.Parents[0].RegisterDerivate(new ActivationGradient<T>(this.Parents[0], this, this.Derivate, this.Type));
+            this.Parents[0].RegisterDerivate(new ActivationGradient<T>(this.Graph, this.Parents[0], this, this.Derivate, this.Type));
         }
 
         protected override void Dispose(bool disposing)
@@ -47,8 +46,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var x = this.Parents[0].Evaluate(session);
@@ -59,8 +59,8 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(x.Shape);
             }
 
-            x.DoActivation(this.Result, this.Type);
-            return this.Result;
+            x.Activation(this.Type, this.Result);
+            return base.Evaluate(session);
         }
 
         public override Dictionary<string, object> GetData()

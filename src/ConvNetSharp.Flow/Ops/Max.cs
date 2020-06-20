@@ -6,13 +6,13 @@ namespace ConvNetSharp.Flow.Ops
 {
     public class Max<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Max(Dictionary<string, object> data)
+        public Max(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Max(Op<T> x)
+        public Max(ConvNetSharp<T> graph, Op<T> x) : base(graph)
         {
-            AddParent(x);
+            this.AddParent(x);
         }
 
         public override string Representation => "Max";
@@ -36,12 +36,13 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var x = this.Parents[0].Evaluate(session);
-            var reshape = x.ReShape(-1, x.Shape.GetDimension(-1));
+            var reshape = x.ReShape(-1, x.Shape.Dimensions[3]);
             var targetShape = new Shape(reshape.Shape);
             targetShape.SetDimension(0, 1);
 
@@ -51,9 +52,9 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(targetShape);
             }
 
-            reshape.DoReduce(this.Result, TensorReduceOp.Max);
+            reshape.Reduce(TensorReduceOp.Max, this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
 
         public override string ToString()

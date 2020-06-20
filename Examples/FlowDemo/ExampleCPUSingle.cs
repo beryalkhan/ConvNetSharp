@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Windows;
 using ConvNetSharp.Flow;
 using ConvNetSharp.Flow.Ops;
 using ConvNetSharp.Flow.Serialization;
 using ConvNetSharp.Flow.Training;
-using ConvNetSharp.Utils.GraphVisualizer;
 using ConvNetSharp.Volume;
 
 namespace FlowDemo
@@ -21,7 +19,7 @@ namespace FlowDemo
         /// </summary>
         public static void Example1()
         {
-            var cns = ConvNetSharp<float>.Instance;
+            var cns = new ConvNetSharp<float>();
 
             // Graph creation
             Op<float> cost;
@@ -39,8 +37,8 @@ namespace FlowDemo
                 var x = cns.PlaceHolder("x");
                 var y = cns.PlaceHolder("y");
 
-                var W = cns.Variable(1.0f, "W");
-                var b = cns.Variable(2.0f, "b");
+                var W = cns.Variable(1.0f, "W", true);
+                var b = cns.Variable(2.0f, "b", true);
 
                 fun = x * W + b;
 
@@ -48,7 +46,7 @@ namespace FlowDemo
             }
 
 
-            var optimizer = new GradientDescentOptimizer<float>(0.01f);
+            var optimizer = new AdamOptimizer<float>(cns, 0.01f, 0.9f, 0.999f, 1e-08f);
 
             using (var session = new Session<float>())
             {
@@ -72,10 +70,10 @@ namespace FlowDemo
 
                 fun.Save("test", cost);
 
-                // Display grpah
-                var vm = new ViewModel<float>(cost);
-                var app = new Application();
-                app.Run(new GraphControl { DataContext = vm });
+                //// Display graph
+                //var vm = new ViewModel<float>(cost);
+                //var app = new Application();
+                //app.Run(new GraphControl { DataContext = vm });
             }
 
             Console.ReadKey();
@@ -86,23 +84,54 @@ namespace FlowDemo
         /// </summary>
         public static void Example2()
         {
-            var cns = ConvNetSharp<float>.Instance;
+            var cns = new ConvNetSharp<float>();
 
             // Graph creation
             var x = cns.PlaceHolder("x");
-            var fun = cns.Const(2, "2") * x;
+            var fun = 2.0f * x;
 
             using (var session = new Session<float>())
             {
                 session.Differentiate(fun); // computes dCost/dW at every node of the graph
 
-                // Display grpah
-                var vm = new ViewModel<float>(x.Derivate);
-                var app = new Application();
-                app.Run(new GraphControl { DataContext = vm });
+                //// Display graph
+                //var vm = new ViewModel<float>(x.Derivate);
+                //var app = new Application();
+                //app.Run(new GraphControl { DataContext = vm });
             }
 
             Console.ReadKey();
+        }
+
+        /// <summary>
+        /// Computes and displays t = t + 1
+        /// </summary>
+        public static void Example3()
+        {
+            var cns = new ConvNetSharp<float>();
+
+            // Graph creation
+            var t = cns.PlaceHolder("t");
+            var fun = cns.Assign(t, t + 1);
+
+            using (var session = new Session<float>())
+            {
+                session.InitializePlaceHolders(fun, new Dictionary<string, Volume<float>> { { "t", 1.0f } });
+
+                do
+                {
+                    session.Run(fun, null);
+
+                    var x  = t.Result.Get(0);
+                    Console.WriteLine(x);
+
+                } while (!Console.KeyAvailable);
+
+                //// Display graph
+                //var vm = new ViewModel<float>(fun);
+                //var app = new Application();
+                //app.Run(new GraphControl { DataContext = vm });
+            }
         }
     }
 }

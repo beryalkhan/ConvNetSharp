@@ -2,14 +2,14 @@
 using ConvNetSharp.Core.Layers;
 using ConvNetSharp.Volume;
 using ConvNetSharp.Volume.Double;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace ConvNetSharp.Core.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class FullyConnLayerTests
     {
-        [TestMethod]
+        [Test]
         public void ComputeTwiceGradientShouldYieldTheSameResult()
         {
             const int inputWidth = 10;
@@ -29,15 +29,15 @@ namespace ConvNetSharp.Core.Tests
 
             // Backward pass to retrieve gradients
             layer.Backward(outputGradient);
-            var step1 = ((Volume<double>)layer.InputActivationGradients.Clone()).ToArray();
+            var step1 = layer.InputActivationGradients.Clone().ToArray();
 
             layer.Backward(outputGradient);
-            var step2 = ((Volume<double>)layer.InputActivationGradients.Clone()).ToArray();
+            var step2 = layer.InputActivationGradients.Clone().ToArray();
 
             Assert.IsTrue(step1.SequenceEqual(step2));
         }
 
-        [TestMethod]
+        [Test]
         public void Forward()
         {
             const int inputWidth = 2;
@@ -49,10 +49,10 @@ namespace ConvNetSharp.Core.Tests
             layer.Init(inputWidth, inputHeight, inputDepth);
 
             // Make sure filter shape had flatten input shape
-            Assert.AreEqual(1, layer.Filters.Shape.GetDimension(0));
-            Assert.AreEqual(1, layer.Filters.Shape.GetDimension(1));
-            Assert.AreEqual(8, layer.Filters.Shape.GetDimension(2));
-            Assert.AreEqual(2, layer.Filters.Shape.GetDimension(3));
+            Assert.AreEqual(1, layer.Filters.Shape.Dimensions[0]);
+            Assert.AreEqual(1, layer.Filters.Shape.Dimensions[1]);
+            Assert.AreEqual(8, layer.Filters.Shape.Dimensions[2]);
+            Assert.AreEqual(2, layer.Filters.Shape.Dimensions[3]);
 
             for (var i = 0; i < 8; i++)
             {
@@ -74,7 +74,7 @@ namespace ConvNetSharp.Core.Tests
             layer.DoForward(input);
         }
 
-        [TestMethod]
+        [Test]
         public void GradientWrtInputCheck()
         {
             const int inputWidth = 15;
@@ -88,7 +88,7 @@ namespace ConvNetSharp.Core.Tests
             GradientCheckTools.GradientCheck(layer, inputWidth, inputHeight, inputDepth, batchSize);
         }
 
-        [TestMethod]
+        [Test]
         public void GradientWrtParametersCheck()
         {
             const int inputWidth = 2;
@@ -99,7 +99,7 @@ namespace ConvNetSharp.Core.Tests
             // Create layer
             var layer = new FullyConnLayer<double>(2) { BiasPref = 0.1 };
 
-            GradientCheckTools.GradienWrtParameterstCheck(inputWidth, inputHeight, inputDepth, batchSize,layer);
+            GradientCheckTools.GradienWrtParameterstCheck(inputWidth, inputHeight, inputDepth, batchSize, layer);
         }
     }
 }

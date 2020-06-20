@@ -11,15 +11,15 @@ namespace ConvNetSharp.Flow.Ops
     /// <typeparam name="T"></typeparam>
     public class SoftmaxCrossEntropy<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public SoftmaxCrossEntropy(Dictionary<string, object> data)
+        public SoftmaxCrossEntropy(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
             this.Result = BuilderInstance<T>.Volume.SameAs(new Shape(1, 1, 1, 1));
         }
 
-        public SoftmaxCrossEntropy(Op<T> softmax, Op<T> y)
+        public SoftmaxCrossEntropy(ConvNetSharp<T> graph, Op<T> softmax, Op<T> y) : base(graph)
         {
-            AddParent(softmax);
-            AddParent(y);
+            this.AddParent(softmax);
+            this.AddParent(y);
 
             this.Result = BuilderInstance<T>.Volume.SameAs(new Shape(1, 1, 1, 1));
         }
@@ -36,21 +36,22 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var y = this.Parents[1].Evaluate(session);
             var outputActivation = this.Parents[0].Evaluate(session);
 
             var loss = Ops<T>.Zero;
-            for (var n = 0; n < y.Shape.GetDimension(3); n++)
+            for (var n = 0; n < y.Shape.Dimensions[3]; n++)
             {
-                for (var d = 0; d < y.Shape.GetDimension(2); d++)
+                for (var d = 0; d < y.Shape.Dimensions[2]; d++)
                 {
-                    for (var h = 0; h < y.Shape.GetDimension(1); h++)
+                    for (var h = 0; h < y.Shape.Dimensions[1]; h++)
                     {
-                        for (var w = 0; w < y.Shape.GetDimension(0); w++)
+                        for (var w = 0; w < y.Shape.Dimensions[0]; w++)
                         {
                             var expected = y.Get(w, h, d, n);
                             var actual = outputActivation.Get(w, h, d, n);
@@ -58,6 +59,7 @@ namespace ConvNetSharp.Flow.Ops
                             {
                                 actual = Ops<T>.Epsilon;
                             }
+
                             var current = Ops<T>.Multiply(expected, Ops<T>.Log(actual));
 
                             loss = Ops<T>.Add(loss, current);
@@ -66,11 +68,11 @@ namespace ConvNetSharp.Flow.Ops
                 }
             }
 
-            var batchSize = outputActivation.Shape.GetDimension(3);
+            var batchSize = outputActivation.Shape.Dimensions[3];
             loss = Ops<T>.Divide(Ops<T>.Negate(loss), Ops<T>.Cast(batchSize));
             this.Result.Set(0, loss);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
     }
 }

@@ -60,14 +60,14 @@ namespace ConvNetSharp.Core.Layers
         {
 #if DEBUG
             var inputs = input.ToArray();
-            foreach(var i in inputs)
+            foreach (var i in inputs)
                 if (Ops<T>.IsInvalid(i))
                     throw new ArgumentException("Invalid input!");
 #endif
 
             this.InputActivation = input;
 
-            var outputShape = new Shape(this.OutputWidth, this.OutputHeight, this.OutputDepth, input.Shape.DimensionCount == 4 ?  input.Shape.GetDimension(3) : 1);
+            var outputShape = new Shape(this.OutputWidth, this.OutputHeight, this.OutputDepth, input.Shape.Dimensions[3]);
 
             if (this.OutputActivation == null ||
                 !this.OutputActivation.Shape.Equals(outputShape))
@@ -82,7 +82,7 @@ namespace ConvNetSharp.Core.Layers
                     this.InputActivation.Shape);
             }
 
-            this.OutputActivation = Forward(input, isTraining);
+            this.OutputActivation = this.Forward(input, isTraining);
 
             return this.OutputActivation;
         }
@@ -91,15 +91,14 @@ namespace ConvNetSharp.Core.Layers
 
         public virtual Volume<T> Forward(bool isTraining)
         {
-            return DoForward(this.Parents[0].Forward(isTraining), isTraining);
+            return this.DoForward(this.Parents[0].Forward(isTraining), isTraining);
         }
 
         public static LayerBase<T> FromData(IDictionary<string, object> dico)
         {
             var typeName = dico["Type"] as string;
             var type = Type.GetType(typeName);
-            var t = Activator.CreateInstance(type, dico) as LayerBase<T>;
-
+            var t = (LayerBase<T>)Activator.CreateInstance(type, dico);
             return t;
         }
 
@@ -107,13 +106,13 @@ namespace ConvNetSharp.Core.Layers
         {
             var dico = new Dictionary<string, object>
             {
-                ["Type"] = GetType().FullName,
+                ["Type"] = this.GetType().FullName,
                 ["InputHeight"] = this.InputHeight,
                 ["InputWidth"] = this.InputWidth,
                 ["InputDepth"] = this.InputDepth,
                 ["OutputWidth"] = this.OutputWidth,
                 ["OutputHeight"] = this.OutputHeight,
-                ["OutputDepth"] = this.OutputDepth,
+                ["OutputDepth"] = this.OutputDepth
             };
             return dico;
         }

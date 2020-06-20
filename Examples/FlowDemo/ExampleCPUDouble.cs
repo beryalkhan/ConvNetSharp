@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 using ConvNetSharp.Flow;
 using ConvNetSharp.Flow.Training;
-using ConvNetSharp.Utils.GraphVisualizer;
 using ConvNetSharp.Volume;
 
 namespace FlowDemo
@@ -17,20 +15,20 @@ namespace FlowDemo
         /// </summary>
         public static void Example1()
         {
-            var cns = ConvNetSharp<double>.Instance;
+            var cns = new ConvNetSharp<double>();
 
             // Graph creation
             var x = cns.PlaceHolder("x");
             var y = cns.PlaceHolder("y");
 
-            var W = cns.Variable(1.0, "W");
-            var b = cns.Variable(2.0, "b");
+            var W = cns.Variable(1.0, "W", true);
+            var b = cns.Variable(2.0, "b", true);
 
             var fun = x * W + b;
 
             var cost = (fun - y) * (fun - y);
 
-            var optimizer = new GradientDescentOptimizer<double>(learningRate: 0.01);
+            var optimizer = new GradientDescentOptimizer<double>(cns, learningRate: 0.01);
 
             using (var session = new Session<double>())
             {
@@ -57,19 +55,19 @@ namespace FlowDemo
 
         public static void Example2()
         {
-            var cns = ConvNetSharp<double>.Instance;
+            var cns = new ConvNetSharp<double>();
 
             // Graph creation
             var x = cns.PlaceHolder("x");
             var y = cns.PlaceHolder("y");
 
-            var b = cns.Variable(2.0, "b");
+            var b = cns.Variable(2.0, "b", true);
 
             var fun = x + b;
 
             var cost = (y - fun) * (y - fun);
 
-            var optimizer = new GradientDescentOptimizer<double>(learningRate: 0.01);
+            var optimizer = new AdamOptimizer<double>(cns, 0.01f, 0.9f, 0.999f, 1e-08f);
 
             using (var session = new Session<double>())
             {
@@ -91,10 +89,10 @@ namespace FlowDemo
                 } while (currentCost > 1e-5);
             }
 
-            // Display derivate at b
-            var vm = new ViewModel<double>(b.Derivate);
-            var app = new Application();
-            app.Run(new GraphControl { DataContext = vm });
+            //// Display derivate at b
+            //var vm = new ViewModel<double>(b.Derivate);
+            //var app = new Application();
+            //app.Run(new GraphControl { DataContext = vm });
 
             double finalb = b.Result;
             Console.WriteLine($"fun = x + {finalb}");

@@ -10,22 +10,22 @@ namespace ConvNetSharp.Flow.Ops
     /// <typeparam name="T"></typeparam>
     public class Add<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Add(Dictionary<string, object> data)
+        public Add(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Add(Op<T> left, Op<T> right)
+        public Add(ConvNetSharp<T> graph, Op<T> left, Op<T> right) : base(graph)
         {
-            AddParent(left);
-            AddParent(right);
+            this.AddParent(left);
+            this.AddParent(right);
         }
 
         public override string Representation => "+";
 
         public override void Differentiate()
         {
-            this.Parents[0].RegisterDerivate(ConvNetSharp<T>.Instance.Sum(this.Derivate, ConvNetSharp<T>.Instance.Shape(this.Parents[0])));
-            this.Parents[1].RegisterDerivate(ConvNetSharp<T>.Instance.Sum(this.Derivate, ConvNetSharp<T>.Instance.Shape(this.Parents[1])));
+            this.Parents[0].RegisterDerivate(this.Graph.Sum(this.Derivate, this.Graph.Shape(this.Parents[0])));
+            this.Parents[1].RegisterDerivate(this.Graph.Sum(this.Derivate, this.Graph.Shape(this.Parents[1])));
         }
 
         protected override void Dispose(bool disposing)
@@ -42,8 +42,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var left = this.Parents[0].Evaluate(session);
@@ -57,9 +58,9 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(shape);
             }
 
-            left.DoAdd(right, this.Result);
+            left.Add(right, this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
 
         public override string ToString()

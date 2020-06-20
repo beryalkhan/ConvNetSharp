@@ -4,17 +4,14 @@
 
 -----------------
 
-| **`VS 2017`** | **`VS 2015`** | **`Nuget`** |
-|-----------------|---------------------|------------------|
-|[![Build status](https://ci.appveyor.com/api/projects/status/lcqjebortqnn1wkg?svg=true)](https://ci.appveyor.com/project/cbovar/convnetsharp)|[![Build status](https://ci.appveyor.com/api/projects/status/2vtsgpr9ppo5b4gg?svg=true)](https://ci.appveyor.com/project/cbovar/convnetsharp-0kbf4)|[![ConvNetSharp NuGet package](https://img.shields.io/nuget/v/Cognitio.ConvNetSharp.Core.svg?style=flat)](https://www.nuget.org/packages/Cognitio.ConvNetSharp.Core/) [![ConvNetSharp NuGet package](https://img.shields.io/nuget/dt/Cognitio.ConvNetSharp.Core.svg?style=flat)](https://www.nuget.org/packages/Cognitio.ConvNetSharp.Core/)|
+[![Build status](https://ci.appveyor.com/api/projects/status/lcqjebortqnn1wkg?svg=true)](https://ci.appveyor.com/project/cbovar/convnetsharp) [![ConvNetSharp NuGet package](https://img.shields.io/nuget/v/Cognitio.ConvNetSharp.Core.svg?style=flat)](https://www.nuget.org/packages/Cognitio.ConvNetSharp.Core/) [![ConvNetSharp NuGet package](https://img.shields.io/nuget/dt/Cognitio.ConvNetSharp.Core.svg?style=flat)](https://www.nuget.org/packages/Cognitio.ConvNetSharp.Core/)
 
 
 # ConvNetSharp
 Started initially as C# port of [ConvNetJS](https://github.com/karpathy/convnetjs). You can use ConvNetSharp to train and evaluate convolutional neural networks (CNN).
 
-Thank you very much to the original author of ConvNetJS (Andrej Karpathy) and to all the contributors!
-
-&#x1F539; NEW &#x1F539; See **ConvNetSharp** in action driving a car ! [Micromachine.AI](https://github.com/cbovar/Micromachine.AI)
+Thank you very much to the original author of ConvNetJS (Andrej Karpathy) and to all the contributors!  
+ConvNetSharp relies on [ManagedCuda](https://github.com/kunzmi/managedCuda) library to acces NVidia's CUDA
 
 ### 3 ways to create neural network
 
@@ -105,17 +102,34 @@ To switch to GPU mode:
 * add '`GPU`' in the namespace: `using ConvNetSharp.Volume.`**GPU**`.Single;` or `using ConvNetSharp.Volume.`**GPU**`.Double;`
 * add `BuilderInstance<float>.Volume = new ConvNetSharp.Volume.GPU.Single.VolumeBuilder();` or `BuilderInstance<double>.Volume = new ConvNetSharp.Volume.GPU.Double.VolumeBuilder();` at the beggining of your code
 
-You must have [CUDA version 8](https://developer.nvidia.com/cuda-downloads) and [Cudnn version 6.1](https://developer.nvidia.com/cudnn) installed.
-Cudnn bin path should be referenced in the PATH environment variable.
+You must have [CUDA version 10.0](https://developer.nvidia.com/cuda-91-download-archivehttps://developer.nvidia.com/cuda-10.0-download-archive?target_os=Windows&target_arch=x86_64&target_version=10) and [cuDNN v7.6.4 (September 27, 2019), for CUDA 10.0](https://developer.nvidia.com/rdp/cudnn-archive) installed.
+cuDNN bin path should be referenced in the PATH environment variable.
 
 Mnist GPU demo [here](https://github.com/cbovar/ConvNetSharp/tree/master/Examples/MnistDemo.GPU)
 
 ## Save and Load Network
-### JSON serialization (not supported by FluentNet)
+### Serialization in ConvNetSharp.Core
 ```c#
+using ConvNetSharp.Core.Serialization;
+
+[...]
+
 // Serialize to json 
-var json = net.ToJsonN();
+var json = net.ToJson();
 
 // Deserialize from json
 Net deserialized = SerializationExtensions.FromJson<double>(json);
+```
+
+###  Serialization in ConvNetSharp.Flow
+```c#
+using ConvNetSharp.Flow.Serialization;
+
+[...]
+
+// Serialize to two files: MyNetwork.graphml (graph structure) / MyNetwork.json (volume data)
+net.Save("MyNetwork");
+
+// Deserialize from files
+var deserialized = SerializationExtensions.Load<double>("MyNetwork", false)[0];  // first element is the network (second element is the cost if it was saved along)
 ```

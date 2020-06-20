@@ -35,6 +35,12 @@ namespace ConvNetSharp.Flow
             throw new NotImplementedException();
         }
 
+        /// <summary>
+        ///     Creates a dictionary containing input and evaluates the output Op
+        /// </summary>
+        /// <param name="input">input</param>
+        /// <param name="isTraining">isTraining has no use here.</param>
+        /// <returns></returns>
         public Volume<T> Forward(Volume<T> input, bool isTraining = false)
         {
             this._dico["input"] = input;
@@ -56,8 +62,8 @@ namespace ConvNetSharp.Flow
         public int[] GetPrediction()
         {
             var activation = this.Op.Evaluate(this.Session);
-            var N = activation.Shape.GetDimension(3);
-            var C = activation.Shape.GetDimension(2);
+            var N = activation.Shape.Dimensions[3];
+            var C = activation.Shape.Dimensions[2];
             var result = new int[N];
 
             for (var n = 0; n < N; n++)
@@ -68,11 +74,13 @@ namespace ConvNetSharp.Flow
                 for (var i = 1; i < C; i++)
                 {
                     var output = activation.Get(0, 0, i, n);
-                    if (Ops<T>.GreaterThan(output, maxv))
+                    if (!Ops<T>.GreaterThan(output, maxv))
                     {
-                        maxv = output;
-                        maxi = i;
+                        continue;
                     }
+
+                    maxv = output;
+                    maxi = i;
                 }
 
                 result[n] = maxi;
@@ -94,11 +102,10 @@ namespace ConvNetSharp.Flow
 
             this.Op = this.Layers.Last().Op;
 
-            var lastLayer = layer as Layers.ILastLayer<T>;
-            if (lastLayer != null)
+            if (layer is Layers.ILastLayer<T> lastLayer)
             {
                 this.Cost = lastLayer.Cost;
-                this.Session.Differentiate(this.Cost);
+                this.Session.Differentiate(this.Cost, Ops<T>.One);
             }
         }
 

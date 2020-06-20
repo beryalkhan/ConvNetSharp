@@ -7,7 +7,7 @@ namespace ConvNetSharp.Flow.Ops
     {
         private readonly Convolution<T> _convolution;
 
-        public ConvolutionFilterGradient(Convolution<T> convolution, Op<T> derivate)
+        public ConvolutionFilterGradient(ConvNetSharp<T> graph, Convolution<T> convolution, Op<T> derivate) : base(graph)
         {
             this._convolution = convolution;
 
@@ -28,6 +28,7 @@ namespace ConvNetSharp.Flow.Ops
             {
                 return this._convolution.FilterGradient;
             }
+
             this.IsDirty = false;
 
             this._convolution.EvaluateGradient(session);

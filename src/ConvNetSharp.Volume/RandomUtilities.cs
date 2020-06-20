@@ -8,7 +8,7 @@ namespace ConvNetSharp.Volume
         private static double val;
         private static bool returnVal;
 
-        public static int Seed => (int) 123;//DateTime.Now.Ticks;
+        public static int Seed => 123; //DateTime.Now.Ticks;
 
         public static double GaussianRandom()
         {
@@ -20,14 +20,14 @@ namespace ConvNetSharp.Volume
 
             double r = 0, u = 0, v = 0;
 
-            //System.Random is not threadsafe
+            //System.Random is not thread-safe
             lock (Random)
             {
                 while (r == 0 || r > 1)
                 {
-                    u = 2*Random.NextDouble() - 1;
-                    v = 2*Random.NextDouble() - 1;
-                    r = u*u + v*v;
+                    u = 2 * Random.NextDouble() - 1;
+                    v = 2 * Random.NextDouble() - 1;
+                    r = u * u + v * v;
                 }
             }
 
@@ -64,13 +64,17 @@ namespace ConvNetSharp.Volume
             return values;
         }
 
-        public static float[] RandomSingleArray(long length, double mu = 0.0, double std = 1.0)
+        public static float[] RandomSingleArray(long length, double mu = 0.0, double std = 1.0, bool posisitveOnly = false)
         {
             var values = new float[length];
 
             for (var i = 0; i < length; i++)
             {
-                values[i] = (float) Randn(mu, std);
+                values[i] = (float)Randn(mu, std);
+                if (posisitveOnly)
+                {
+                    values[i] = Math.Abs(values[i]);
+                }
             }
 
             return values;

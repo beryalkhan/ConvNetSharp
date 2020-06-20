@@ -6,13 +6,13 @@ namespace ConvNetSharp.Flow.Ops
 {
     public class Log<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Log(Dictionary<string, object> data)
+        public Log(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Log(Op<T> x)
+        public Log(ConvNetSharp<T> graph, Op<T> x) : base(graph)
         {
-            AddParent(x);
+            this.AddParent(x);
         }
 
         public override string Representation => "Log";
@@ -26,8 +26,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var x = this.Parents[0].Evaluate(session);
@@ -38,8 +39,8 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(x.Shape);
             }
 
-            x.DoLog(this.Result);
-            return this.Result;
+            x.Log(this.Result);
+            return base.Evaluate(session);
         }
 
         public override string ToString()

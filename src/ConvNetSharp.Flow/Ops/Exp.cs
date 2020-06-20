@@ -6,28 +6,29 @@ namespace ConvNetSharp.Flow.Ops
 {
     public class Exp<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Exp(Dictionary<string, object> data)
+        public Exp(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Exp(Op<T> x)
+        public Exp(ConvNetSharp<T> graph, Op<T> x) : base(graph)
         {
-            AddParent(x);
+            this.AddParent(x);
         }
 
         public override string Representation => "Exp";
 
         public override void Differentiate()
         {
-            this.Parents[0].RegisterDerivate(this.Derivate * new Exp<T>(this.Parents[0]));
+            this.Parents[0].RegisterDerivate(this.Derivate * this.Graph.Exp(this.Parents[0]));
         }
 
         public override Volume<T> Evaluate(Session<T> session)
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var x = this.Parents[0].Evaluate(session);
@@ -38,8 +39,8 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(x.Shape);
             }
 
-            x.DoExp(this.Result);
-            return this.Result;
+            x.Exp(this.Result);
+            return base.Evaluate(session);
         }
 
         public override string ToString()

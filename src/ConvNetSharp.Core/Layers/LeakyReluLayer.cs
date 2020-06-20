@@ -6,32 +6,40 @@ namespace ConvNetSharp.Core.Layers
 {
     /// <summary>
     ///     Implements LeakyReLU nonlinearity elementwise
-    ///     x -> x > 0, x, otherwise 0.01x
-    ///     the output is in [0, inf)
+    ///     x -> x > 0, x, otherwise alpha * x
     /// </summary>
     public class LeakyReluLayer<T> : LayerBase<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public LeakyReluLayer()
+        public LeakyReluLayer(T alpha)
         {
-
+            this.Alpha = alpha;
         }
 
         public LeakyReluLayer(Dictionary<string, object> data) : base(data)
         {
+            this.Alpha = (T)Convert.ChangeType(data["Alpha"], typeof(T));
+        }
+
+        public T Alpha { get; set; }
+
+        public override Dictionary<string, object> GetData()
+        {
+            var dico = base.GetData();
+
+            dico["Alpha"] = this.Alpha;
+
+            return dico;
         }
 
         public override void Backward(Volume<T> outputGradient)
         {
             this.OutputActivationGradients = outputGradient;
-
-            this.OutputActivation.DoLeakyReluGradient(this.InputActivation,
-                this.OutputActivationGradients,
-                this.InputActivationGradients);
+            this.OutputActivation.LeakyReluGradient(this.OutputActivationGradients, this.InputActivationGradients, this.Alpha);
         }
 
         protected override Volume<T> Forward(Volume<T> input, bool isTraining = false)
         {
-            input.DoLeakyRelu(this.OutputActivation);
+            input.LeakyRelu(this.Alpha, this.OutputActivation);
             return this.OutputActivation;
         }
 

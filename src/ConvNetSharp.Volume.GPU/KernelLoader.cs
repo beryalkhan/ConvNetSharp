@@ -31,23 +31,21 @@ namespace ConvNetSharp.Volume.GPU
                 throw new ArgumentException($"Couldn't load kernel '{name}'.", nameof(stream));
             }
 
-            using (StreamReader reader = new StreamReader(stream))
-            {
-                string result = reader.ReadToEnd();
-                File.WriteAllText($"{name}.cu", result);
+            using var reader = new StreamReader(stream);
 
-                this.LoadKernel(name, $"{name}.cu");
-            }
+            var result = reader.ReadToEnd();
+            File.WriteAllText($"{name}.cu", result);
+
+            this.LoadKernel(name, $"{name}.cu");
         }
 
         public void LoadKernel(string name, string path)
         {
-            CudaKernel kernel;
             string log;
-            var result = LoadKernel(path, out kernel, out log);
+            var result = this.LoadKernel(path, out var kernel, out log);
             if (result == nvrtcResult.Success)
             {
-                AddKernel(name, kernel);
+                this.AddKernel(name, kernel);
             }
         }
 
@@ -78,6 +76,7 @@ namespace ConvNetSharp.Volume.GPU
                     kernel = null;
                 }
             }
+
             return result;
         }
 
@@ -88,27 +87,15 @@ namespace ConvNetSharp.Volume.GPU
                 // take away the surplus, and add an entire extra block
                 value += blockSize - value % blockSize;
             }
+
             return value;
         }
 
-        public void RunKernel(string kernelName, Volume<T> input, Volume<T> output)
+        public void RunKernel(string kernelName, Volume<T> input, Volume<T> output, params object[] extraParameters)
         {
-            CudaKernel kernel;
-            if (this._kernels.TryGetValue(kernelName, out kernel))
+            if (this._kernels.TryGetValue(kernelName, out var kernel))
             {
-                RunKernel(input, output, kernel);
-            }
-            else
-            {
-                throw new ArgumentException($"Could not find kernel '{kernelName}'", nameof(kernelName));
-            }
-        }
-        public void RunKernel(string kernelName, Volume<T> input1, Volume<T> input2, Volume<T> output)
-        {
-            CudaKernel kernel;
-            if (this._kernels.TryGetValue(kernelName, out kernel))
-            {
-                RunKernel(input1, input2, output, kernel);
+                this.RunKernel(input, output, kernel, extraParameters);
             }
             else
             {
@@ -116,32 +103,31 @@ namespace ConvNetSharp.Volume.GPU
             }
         }
 
-        private void RunKernel(Volume<T> input1, Volume<T> input2, Volume<T> output, CudaKernel kernel)
+        public void RunKernel(string kernelName, Volume<T> input1, Volume<T> input2, Volume<T> output, params object[] extraParameters)
         {
-            if (!Equals(input1.Shape, output.Shape))
+            if (this._kernels.TryGetValue(kernelName, out var kernel))
             {
-                throw new ArgumentException($"{nameof(input1)} and {nameof(output)} should have the same shape.");
+                this.RunKernel(input1, input2, output, kernel, extraParameters);
             }
-
-            if (!Equals(input2.Shape, output.Shape))
+            else
             {
-                throw new ArgumentException($"{nameof(input2)} and {nameof(output)} should have the same shape.");
+                throw new ArgumentException($"Could not find kernel '{kernelName}'", nameof(kernelName));
             }
+        }
 
-            var input1Storage = input1.Storage as IVolumeStorage<T>;
-            if (input1Storage == null)
+        private void RunKernel(Volume<T> input1, Volume<T> input2, Volume<T> output, CudaKernel kernel, params object[] extraParameters)
+        {
+            if (!(input1.Storage is IVolumeStorage<T> input1Storage))
             {
                 throw new ArgumentException($"{nameof(input1)} storage should be VolumeStorage", nameof(input1));
             }
 
-            var input2Storage = input2.Storage as IVolumeStorage<T>;
-            if (input2Storage == null)
+            if (!(input2.Storage is IVolumeStorage<T> input2Storage))
             {
                 throw new ArgumentException($"{nameof(input2)} storage should be VolumeStorage", nameof(input2));
             }
 
-            var outputStorage = output.Storage as IVolumeStorage<T>;
-            if (outputStorage == null)
+            if (!(output.Storage is IVolumeStorage<T> outputStorage))
             {
                 throw new ArgumentException($"{nameof(output)} storage should be VolumeStorage", nameof(output));
             }
@@ -150,27 +136,24 @@ namespace ConvNetSharp.Volume.GPU
             input2Storage.CopyToDevice();
             outputStorage.CopyToDevice();
 
-            var count = (int)input1.Shape.TotalLength;
+            var count = (int)output.Shape.TotalLength;
             var parameters = new object[] { input1Storage.DeviceBuffer.DevicePointer, input2Storage.DeviceBuffer.DevicePointer, outputStorage.DeviceBuffer.DevicePointer };
-
-            RunKernel(kernel, count, parameters);
-        }
-
-        private void RunKernel(Volume<T> input, Volume<T> output, CudaKernel kernel)
-        {
-            if (!Equals(input.Shape, output.Shape))
+            if (extraParameters != null)
             {
-                throw new ArgumentException($"{nameof(input)} and {nameof(output)} should have the same shape.");
+                parameters = parameters.Concat(extraParameters).ToArray();
             }
 
-            var inputStorage = input.Storage as IVolumeStorage<T>;
-            if (inputStorage == null)
+            this.RunKernel(kernel, count, parameters);
+        }
+
+        private void RunKernel(Volume<T> input, Volume<T> output, CudaKernel kernel, params object[] extraParameters)
+        {
+            if (!(input.Storage is IVolumeStorage<T> inputStorage))
             {
                 throw new ArgumentException($"{nameof(input)} storage should be VolumeStorage", nameof(input));
             }
 
-            var outputStorage = output.Storage as IVolumeStorage<T>;
-            if (outputStorage == null)
+            if (!(output.Storage is IVolumeStorage<T> outputStorage))
             {
                 throw new ArgumentException($"{nameof(output)} storage should be VolumeStorage", nameof(output));
             }
@@ -178,13 +161,17 @@ namespace ConvNetSharp.Volume.GPU
             inputStorage.CopyToDevice();
             outputStorage.CopyToDevice();
 
-            var count = (int)input.Shape.TotalLength;
+            var count = (int)output.Shape.TotalLength;
             var parameters = new object[] { inputStorage.DeviceBuffer.DevicePointer, outputStorage.DeviceBuffer.DevicePointer };
+            if (extraParameters != null)
+            {
+                parameters = parameters.Concat(extraParameters).ToArray();
+            }
 
-            RunKernel(kernel, count, parameters);
+            this.RunKernel(kernel, count, parameters);
         }
 
-        private void RunKernel(CudaKernel kernel, int count, object[] parameters)
+        private void RunKernel(CudaKernel kernel, int count, IEnumerable<object> parameters)
         {
             // configure the dimensions; note, usually this is a lot more dynamic based
             // on input data, but we'll still go through the motions
@@ -195,7 +182,7 @@ namespace ConvNetSharp.Volume.GPU
                 threadsPerBlock = RoundUp(count, this._context.WarpSize); // slight caveat here; if you are using "shuffle" operations, you
                 // need to use entire "warp"s - otherwise the result is undefined
             }
-            else if (count >= this._context.DefaultThreadsPerBlock * this._context.DefaultBlockCount)
+            else if (count <= this._context.DefaultThreadsPerBlock * this._context.DefaultBlockCount)
             {
                 // more than enough work to keep us busy; just use that
                 threadsPerBlock = this._context.DefaultThreadsPerBlock;

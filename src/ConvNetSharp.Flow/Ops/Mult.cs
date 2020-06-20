@@ -12,20 +12,21 @@ namespace ConvNetSharp.Flow.Ops
     /// <typeparam name="T"></typeparam>
     public class Mult<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public Mult(Dictionary<string, object> data)
+        public Mult(ConvNetSharp<T> graph, Dictionary<string, object> data) : base(graph)
         {
         }
 
-        public Mult(Op<T> left, Op<T> right)
+        public Mult(ConvNetSharp<T> graph, Op<T> left, Op<T> right) : base(graph)
         {
-            AddParent(left);
-            AddParent(right);
+            this.AddParent(left);
+            this.AddParent(right);
         }
 
         public override string Representation => "*";
 
         public override void Differentiate()
         {
+            // dA = GB, dB = AG
             this.Parents[0].RegisterDerivate(this.Derivate * this.Parents[1]);
             this.Parents[1].RegisterDerivate(this.Derivate * this.Parents[0]);
         }
@@ -44,8 +45,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var left = this.Parents[0].Evaluate(session);
@@ -59,9 +61,9 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(shape);
             }
 
-            left.DoMultiply(right, this.Result);
+            left.Multiply(right, this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
         }
 
         public override string ToString()

@@ -19,29 +19,32 @@ namespace ConvNetSharp.Core.Layers
         public int ClassCount { get; set; }
 
         /// <summary>
-        /// This computes the cross entropy loss and its gradient (not the softmax gradient)
+        ///     This computes the cross entropy loss and its gradient (not the softmax gradient)
         /// </summary>
         /// <param name="y"></param>
         /// <param name="loss"></param>
         public override void Backward(Volume<T> y, out T loss)
         {
             // input gradient = pi - yi
-            y.DoSubtractFrom(this.OutputActivation, this.InputActivationGradients.ReShape(this.OutputActivation.Shape.Dimensions.ToArray()));
+            y.SubtractFrom(this.OutputActivation, this.InputActivationGradients.ReShape(this.OutputActivation.Shape.Dimensions));
 
             //loss is the class negative log likelihood
             loss = Ops<T>.Zero;
-            for (var n = 0; n < y.Shape.GetDimension(3); n++)
+            for (var n = 0; n < y.Shape.Dimensions[3]; n++)
             {
-                for (var d = 0; d < y.Shape.GetDimension(2); d++)
+                for (var d = 0; d < y.Shape.Dimensions[2]; d++)
                 {
-                    for (var h = 0; h < y.Shape.GetDimension(1); h++)
+                    for (var h = 0; h < y.Shape.Dimensions[1]; h++)
                     {
-                        for (var w = 0; w < y.Shape.GetDimension(0); w++)
+                        for (var w = 0; w < y.Shape.Dimensions[0]; w++)
                         {
                             var expected = y.Get(w, h, d, n);
                             var actual = this.OutputActivation.Get(w, h, d, n);
                             if (Ops<T>.Zero.Equals(actual))
+                            {
                                 actual = Ops<T>.Epsilon;
+                            }
+
                             var current = Ops<T>.Multiply(expected, Ops<T>.Log(actual));
 
                             loss = Ops<T>.Add(loss, current);
@@ -53,7 +56,9 @@ namespace ConvNetSharp.Core.Layers
             loss = Ops<T>.Negate(loss);
 
             if (Ops<T>.IsInvalid(loss))
+            {
                 throw new ArgumentException("Error during calculation!");
+            }
         }
 
         public override void Backward(Volume<T> outputGradient)
@@ -63,7 +68,7 @@ namespace ConvNetSharp.Core.Layers
 
         protected override Volume<T> Forward(Volume<T> input, bool isTraining = false)
         {
-            input.DoSoftmax(this.OutputActivation);
+            input.Softmax(this.OutputActivation);
             return this.OutputActivation;
         }
 

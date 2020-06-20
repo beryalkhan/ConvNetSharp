@@ -5,7 +5,7 @@ namespace ConvNetSharp.Flow.Ops
 {
     internal class ActivationGradient<T> : Op<T> where T : struct, IEquatable<T>, IFormattable
     {
-        public ActivationGradient(Op<T> input, Op<T> output, Op<T> outputGradient, ActivationType type)
+        public ActivationGradient(ConvNetSharp<T> graph, Op<T> input, Op<T> output, Op<T> outputGradient, ActivationType type) : base(graph)
         {
             this.AddParent(input);
             this.AddParent(output);
@@ -37,8 +37,9 @@ namespace ConvNetSharp.Flow.Ops
         {
             if (!this.IsDirty)
             {
-                return this.Result;
+                return base.Evaluate(session);
             }
+
             this.IsDirty = false;
 
             var input = this.Parents[0].Evaluate(session);
@@ -51,9 +52,14 @@ namespace ConvNetSharp.Flow.Ops
                 this.Result = BuilderInstance<T>.Volume.SameAs(input.Shape);
             }
 
-            output.DoActivationGradient(input, outputGradient, this.Result, this.Type);
+            output.ActivationGradient(input, outputGradient, this.Type, this.Result);
 
-            return this.Result;
+            return base.Evaluate(session);
+        }
+
+        public override string ToString()
+        {
+            return $"{this.Type} Gradient({this.Parents[0]})";
         }
     }
 }

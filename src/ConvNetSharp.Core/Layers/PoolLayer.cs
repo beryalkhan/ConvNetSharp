@@ -11,10 +11,10 @@ namespace ConvNetSharp.Core.Layers
 
         public PoolLayer(Dictionary<string, object> data) : base(data)
         {
-            this.Width =  Convert.ToInt32(data["Width"]);
-            this.Height =  Convert.ToInt32(data["Height"]);
-            this.Pad =  Convert.ToInt32(data["Pad"]);
-            this.Stride =  Convert.ToInt32(data["Stride"]);
+            this.Width = Convert.ToInt32(data["Width"]);
+            this.Height = Convert.ToInt32(data["Height"]);
+            this.Pad = Convert.ToInt32(data["Pad"]);
+            this.Stride = Convert.ToInt32(data["Stride"]);
             this.IsInitialized = true;
         }
 
@@ -30,26 +30,26 @@ namespace ConvNetSharp.Core.Layers
 
         public int Stride
         {
-            get { return this._stride; }
+            get => this._stride;
             set
             {
                 this._stride = value;
                 if (this.IsInitialized)
                 {
-                    UpdateOutputSize();
+                    this.UpdateOutputSize();
                 }
             }
         }
 
         public int Pad
         {
-            get { return this._pad; }
+            get => this._pad;
             set
             {
                 this._pad = value;
                 if (this.IsInitialized)
                 {
-                    UpdateOutputSize();
+                    this.UpdateOutputSize();
                 }
             }
         }
@@ -60,9 +60,8 @@ namespace ConvNetSharp.Core.Layers
 
             this.InputActivationGradients.Clear();
 
-            this.OutputActivation.DoPoolGradient(this.InputActivation, this.OutputActivationGradients,
-                this.InputActivationGradients, this.Width,
-                this.Height, this.Pad, this.Pad, this.Stride, this.Stride);
+            this.OutputActivation.PoolGradient(this.InputActivation, this.OutputActivationGradients, this.Width,
+                this.Height, this.Pad, this.Pad, this.Stride, this.Stride, this.InputActivationGradients);
         }
 
         public override Dictionary<string, object> GetData()
@@ -79,7 +78,7 @@ namespace ConvNetSharp.Core.Layers
 
         protected override Volume<T> Forward(Volume<T> input, bool isTraining = false)
         {
-            input.DoPool(this.OutputActivation, this.Width, this.Height, this.Pad, this.Pad, this.Stride, this.Stride);
+            input.Pool(this.Width, this.Height, this.Pad, this.Pad, this.Stride, this.Stride, this.OutputActivation);
             return this.OutputActivation;
         }
 
@@ -87,7 +86,7 @@ namespace ConvNetSharp.Core.Layers
         {
             base.Init(inputWidth, inputHeight, inputDepth);
 
-            UpdateOutputSize();
+            this.UpdateOutputSize();
         }
 
         private void UpdateOutputSize()

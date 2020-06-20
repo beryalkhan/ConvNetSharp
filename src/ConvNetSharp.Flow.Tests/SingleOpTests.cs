@@ -2,17 +2,17 @@ using System.Linq;
 using ConvNetSharp.Flow.Ops;
 using ConvNetSharp.Volume;
 using ConvNetSharp.Volume.Single;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace ConvNetSharp.Flow.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class SingleOpTests : OpTests<float>
     {
         public SingleOpTests()
         {
             Op<float>.Count = 1;
-            BuilderInstance<float>.Volume = new Volume.Single.VolumeBuilder();
+            BuilderInstance<float>.Volume = new VolumeBuilder();
         }
 
         protected override Volume<float> NewVolume(double[] values, Shape shape)

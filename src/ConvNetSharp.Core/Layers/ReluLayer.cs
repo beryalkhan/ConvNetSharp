@@ -13,7 +13,6 @@ namespace ConvNetSharp.Core.Layers
     {
         public ReluLayer()
         {
-            
         }
 
         public ReluLayer(Dictionary<string, object> data) : base(data)
@@ -24,14 +23,14 @@ namespace ConvNetSharp.Core.Layers
         {
             this.OutputActivationGradients = outputGradient;
 
-            this.OutputActivation.DoReluGradient(this.InputActivation,
+            this.OutputActivation.ReluGradient(this.InputActivation,
                 this.OutputActivationGradients,
                 this.InputActivationGradients);
         }
 
         protected override Volume<T> Forward(Volume<T> input, bool isTraining = false)
         {
-            input.DoRelu(this.OutputActivation);
+            input.Relu(this.OutputActivation);
             return this.OutputActivation;
         }
 

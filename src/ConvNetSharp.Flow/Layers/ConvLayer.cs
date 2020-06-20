@@ -25,7 +25,7 @@ namespace ConvNetSharp.Flow.Layers
 
         public T BiasPref
         {
-            get { return this._biasPref; }
+            get => this._biasPref;
             set
             {
                 this._biasPref = value;
@@ -39,7 +39,7 @@ namespace ConvNetSharp.Flow.Layers
 
         public int Stride
         {
-            get { return this._stride; }
+            get => this._stride;
             set
             {
                 this._stride = value;
@@ -52,7 +52,7 @@ namespace ConvNetSharp.Flow.Layers
 
         public int Pad
         {
-            get { return this._pad; }
+            get => this._pad;
             set
             {
                 this._pad = value;
@@ -69,12 +69,12 @@ namespace ConvNetSharp.Flow.Layers
         {
             base.AcceptParent(parent);
 
-            var cns = ConvNetSharp<T>.Instance;
+            var cns = parent.Op.Graph;
 
-            using (ConvNetSharp<T>.Instance.Scope($"ConvLayer_{this.Id}"))
+            using (cns.Scope($"ConvLayer_{this.Id}"))
             {
                 var content = new T[this._filterCount].Populate(this.BiasPref);
-                this._bias = cns.Variable(BuilderInstance<T>.Volume.From(content, new Shape(1, 1, this._filterCount, 1)), "Bias");
+                this._bias = cns.Variable(BuilderInstance<T>.Volume.From(content, new Shape(1, 1, this._filterCount, 1)), "Bias", true);
                 this._conv = cns.Conv(parent.Op, this._width, this._height, this._filterCount, this.Stride, this.Pad);
                 this.Op = this._conv + this._bias;
             }

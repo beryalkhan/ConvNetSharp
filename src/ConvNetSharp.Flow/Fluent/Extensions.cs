@@ -7,9 +7,25 @@ namespace ConvNetSharp.Flow.Fluent
     {
         #region LayerBase<T>
 
+        public static DropoutLayer<T> DropoutLayer<T>(this LayerBase<T> layer, T dropoutProbability) where T : struct, IEquatable<T>, IFormattable
+        {
+            var dropout = new DropoutLayer<T>(dropoutProbability);
+            dropout.AcceptParent(layer);
+
+            return dropout;
+        }
+
         public static ReluLayer<T> Relu<T>(this LayerBase<T> layer) where T : struct, IEquatable<T>, IFormattable
         {
             var relu = new ReluLayer<T>();
+            relu.AcceptParent(layer);
+
+            return relu;
+        }
+
+        public static LeakyReluLayer<T> LeakyRelu<T>(this LayerBase<T> layer, T alpha) where T : struct, IEquatable<T>, IFormattable
+        {
+            var relu = new LeakyReluLayer<T>(alpha);
             relu.AcceptParent(layer);
 
             return relu;
@@ -91,9 +107,19 @@ namespace ConvNetSharp.Flow.Fluent
         {
             var relu = new ReluLayer<T>();
             relu.AcceptParent(layer);
-            
-            layer.BiasPref = (T) Convert.ChangeType(0.1, typeof(T)); // can we do better?
-            
+
+            layer.BiasPref = (T)Convert.ChangeType(0.1, typeof(T)); // can we do better?
+
+            return relu;
+        }
+
+        public static LeakyReluLayer<T> LeakyRelu<T>(this ConvLayer<T> layer, T alpha) where T : struct, IEquatable<T>, IFormattable
+        {
+            var relu = new LeakyReluLayer<T>(alpha);
+            relu.AcceptParent(layer);
+
+            layer.BiasPref = (T)Convert.ChangeType(0.1, typeof(T)); // can we do better?
+
             return relu;
         }
 
